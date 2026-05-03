@@ -7,6 +7,12 @@ import { login } from "../../shopify.server";
 import { loginErrorMessage } from "./error.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const url = new URL(request.url);
+
+  if (!url.searchParams.get("shop")) {
+    return { errors: {} };
+  }
+
   const errors = loginErrorMessage(await login(request));
 
   return { errors };
@@ -31,6 +37,9 @@ export default function Auth() {
       <s-page>
         <Form method="post">
         <s-section heading="Log in">
+          <s-text>
+            Open the embedded app from Shopify Admin, or enter your shop domain below.
+          </s-text>
           <s-text-field
             name="shop"
             label="Shop domain"

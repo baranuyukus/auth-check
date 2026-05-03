@@ -26,11 +26,11 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
+      - name: Build
+        run: npm run build
+
       - name: Typecheck
         run: npm run typecheck
 
       - name: Lint
         run: npm run lint
-
-      - name: Build
-        run: npm run build

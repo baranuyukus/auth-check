@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "build": "react-router build",
-    "ci": "npm run typecheck && npm run lint && npm run build",
+    "ci": "npm run build && npm run typecheck && npm run lint",
     "cf:deploy": "npm run build && wrangler deploy",
     "cf:dev": "wrangler dev",
     "cf:typegen": "wrangler types",
