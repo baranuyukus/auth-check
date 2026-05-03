@@ -7,11 +7,12 @@ declare global {
 }
 
 function createPrismaClient() {
-  const hyperdriveConnectionString = process.env.HYPERDRIVE_CONNECTION_STRING;
+  const connectionString =
+    process.env.HYPERDRIVE_CONNECTION_STRING ?? process.env.DATABASE_URL;
 
-  if (hyperdriveConnectionString) {
+  if (connectionString) {
     const adapter = new PrismaPg({
-      connectionString: hyperdriveConnectionString,
+      connectionString,
     });
 
     return new PrismaClient({ adapter });
