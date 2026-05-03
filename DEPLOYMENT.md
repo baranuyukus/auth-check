@@ -65,6 +65,26 @@ Use one of these runtime database inputs:
 - `HYPERDRIVE_CONNECTION_STRING`
   Recommended for Workers. When this variable is present, [`app/db.server.ts`](./app/db.server.ts) switches Prisma to the `@prisma/adapter-pg` driver adapter for Hyperdrive-backed Postgres access.
 
+### Recommended production database layout
+
+For `https://registry.meezyarchive.com`, the clean production path is:
+
+1. Create a managed PostgreSQL database
+   Examples: Neon, Supabase, AWS RDS, Cloud SQL, Prisma Postgres.
+2. Create a Cloudflare Hyperdrive configuration that points to that PostgreSQL database.
+3. Add a Hyperdrive binding named `HYPERDRIVE` to this Worker.
+4. Keep Prisma migrations outside request handling
+   Run `npx prisma migrate deploy` from CI or from your machine against the real Postgres database.
+
+[`worker/index.ts`](./worker/index.ts) now reads `env.HYPERDRIVE.connectionString` and maps it into `process.env.HYPERDRIVE_CONNECTION_STRING`, so the existing Prisma bootstrap in [`app/db.server.ts`](./app/db.server.ts) will automatically use the Hyperdrive connection when the Worker handles requests.
+
+This means:
+
+- Cloudflare Worker does not store the database itself
+- your real data lives in external PostgreSQL
+- Hyperdrive sits between Worker and Postgres for connection pooling and better network behavior
+- Prisma remains your ORM layer
+
 ## Shopify values to update after Cloudflare gives you a stable domain
 
 Assume Cloudflare gives you `https://registry.meezyarchive.com`:

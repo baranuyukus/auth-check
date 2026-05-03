@@ -69,6 +69,8 @@ Optional Cloudflare local Worker env file:
 
 When `HYPERDRIVE_CONNECTION_STRING` is present, [`app/db.server.ts`](./app/db.server.ts) automatically switches Prisma to the `@prisma/adapter-pg` adapter so the Worker can use Hyperdrive-backed Postgres access.
 
+In production on Cloudflare Workers, the preferred setup is a Hyperdrive binding named `HYPERDRIVE`. [`worker/index.ts`](./worker/index.ts) copies `env.HYPERDRIVE.connectionString` into `process.env.HYPERDRIVE_CONNECTION_STRING` before the app initializes Prisma, so you can keep the same Prisma code path locally and on Workers.
+
 ## Cloudflare Workers
 
 This repo now includes:
