@@ -65,11 +65,17 @@ Optional Cloudflare local Worker env file:
 - `SCOPES`
 - `SHOPIFY_APP_URL`
 - `DATABASE_URL`
+- `DIRECT_URL`
 - `HYPERDRIVE_CONNECTION_STRING`
 
 When `HYPERDRIVE_CONNECTION_STRING` is present, [`app/db.server.ts`](./app/db.server.ts) automatically switches Prisma to the `@prisma/adapter-pg` adapter so the Worker can use Hyperdrive-backed Postgres access.
 
 In production on Cloudflare Workers, the preferred setup is a Hyperdrive binding named `HYPERDRIVE`. [`worker/index.ts`](./worker/index.ts) copies `env.HYPERDRIVE.connectionString` into `process.env.HYPERDRIVE_CONNECTION_STRING` before the app initializes Prisma, so you can keep the same Prisma code path locally and on Workers.
+
+For Supabase, a good split is:
+
+- `DATABASE_URL`: Supavisor session pooler for local app traffic, or transaction/session pooler if you explicitly need it
+- `DIRECT_URL`: direct database URL for Prisma migration commands
 
 ## Cloudflare Workers
 

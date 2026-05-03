@@ -4,4 +4,5 @@ SCOPES=read_products,write_products,read_orders,read_customers,write_app_proxy
 SHOPIFY_APP_URL=https://registry.yourdomain.com
 SHOP_CUSTOM_DOMAIN=
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/meezy_archive?schema=public
+DIRECT_URL=
 HYPERDRIVE_CONNECTION_STRING=

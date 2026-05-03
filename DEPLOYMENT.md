@@ -55,6 +55,7 @@ Set these in Cloudflare before the first production deploy:
 - `SCOPES`
 - `SHOPIFY_APP_URL`
 - `SHOP_CUSTOM_DOMAIN` if you use a custom `.myshopify.com` mapping rule
+- `DIRECT_URL` for Prisma migrations when you want a separate direct database path
 
 ### Database options
 
@@ -84,6 +85,20 @@ This means:
 - your real data lives in external PostgreSQL
 - Hyperdrive sits between Worker and Postgres for connection pooling and better network behavior
 - Prisma remains your ORM layer
+
+### Supabase-specific note
+
+Supabase recommends:
+
+- session pooler (port `5432`) for persistent app/database traffic
+- transaction pooler (port `6543`) for serverless clients, with `pgbouncer=true`
+- direct connection for migration/admin tasks when available
+
+For this repo, a practical setup is:
+
+- `DATABASE_URL` -> Supabase session pooler string
+- `DIRECT_URL` -> Supabase direct connection string
+- Hyperdrive -> points at the same Supabase database for Worker runtime traffic
 
 ## Shopify values to update after Cloudflare gives you a stable domain
 
