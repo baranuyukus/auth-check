@@ -1,0 +1,13 @@
+api_version = "2026-01"
+
+[[extensions]]
+name = "My Authenticated Items"
+handle = "my-authenticated-items"
+type = "ui_extension"
+
+[[extensions.targeting]]
+target = "customer-account.page.render"
+module = "./src/CustomerAccount.jsx"
+
+[extensions.capabilities]
+api_access = true

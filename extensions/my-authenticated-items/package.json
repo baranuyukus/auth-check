@@ -1,0 +1,13 @@
+{
+  "name": "my-authenticated-items",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "shopify app build",
+    "dev": "shopify app dev"
+  },
+  "dependencies": {
+    "@shopify/ui-extensions-react": "^2026.0.0",
+    "react": "^18.3.1"
+  }
+}

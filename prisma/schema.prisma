@@ -1,0 +1,408 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id                    String   @id
+  shop                  String
+  state                 String
+  isOnline              Boolean  @default(false)
+  scope                 String?
+  expires               DateTime?
+  accessToken           String   @db.Text
+  userId                BigInt?
+  firstName             String?
+  lastName              String?
+  email                 String?
+  accountOwner          Boolean  @default(false)
+  locale                String?
+  collaborator          Boolean? @default(false)
+  emailVerified         Boolean? @default(false)
+  refreshToken          String?  @db.Text
+  refreshTokenExpires   DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([shop])
+  @@index([expires])
+  @@index([state])
+  @@map("sessions")
+}
+
+model Shop {
+  id                     String        @id @default(uuid()) @db.Uuid
+  shopifyShopDomain      String        @unique
+  displayName            String?
+  ownerEmail             String?
+  accessTokenEncrypted    String?       @db.Text
+  installedAt            DateTime?
+  uninstalledAt          DateTime?
+  settings               Json
+  primaryCurrency        String?
+  timezone               String?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  products               Product[]
+  customers              Customer[]
+  authItems              AuthItem[]
+  scans                  Scan[]
+  claims                 Claim[]
+  transfers              Transfer[]
+  riskFlags              RiskFlag[]
+  webhookEvents          WebhookEvent[]
+  auditLogs              AuditLog[]
+
+  @@index([installedAt])
+  @@index([uninstalledAt])
+  @@map("shops")
+}
+
+model Product {
+  id                 String    @id @default(uuid()) @db.Uuid
+  shopId             String    @db.Uuid
+  shop               Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopifyProductId   BigInt
+  shopifyVariantId   BigInt
+  sku                String?
+  title              String
+  variantTitle       String?
+  handle             String?
+  vendor             String?
+  productType        String?
+  imageUrl           String?
+  metadata           Json
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  authItems          AuthItem[]
+
+  @@unique([shopId, shopifyVariantId])
+  @@index([shopId, shopifyProductId])
+  @@index([shopId, sku])
+  @@map("products")
+}
+
+model Customer {
+  id                 String    @id @default(uuid()) @db.Uuid
+  shopId             String    @db.Uuid
+  shop               Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopifyCustomerId  BigInt
+  email              String?
+  firstName          String?
+  lastName           String?
+  phone              String?
+  locale             String?
+  verifiedEmail      Boolean   @default(false)
+  metadata           Json
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  authItems          AuthItem[] @relation("CustomerOwnedItems")
+  claims             Claim[]
+  transfersFrom      Transfer[] @relation("TransferFromCustomer")
+  transfersTo        Transfer[] @relation("TransferToCustomer")
+
+  @@unique([shopId, shopifyCustomerId])
+  @@index([shopId, email])
+  @@map("customers")
+}
+
+model AuthItem {
+  id                        String         @id @default(uuid()) @db.Uuid
+  shopId                    String         @db.Uuid
+  productId                 String         @db.Uuid
+  ownerCustomerId           String?        @db.Uuid
+  shop                      Shop           @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  product                   Product        @relation(fields: [productId], references: [id], onDelete: Restrict)
+  ownerCustomer             Customer?      @relation("CustomerOwnedItems", fields: [ownerCustomerId], references: [id], onDelete: SetNull)
+  authId                    String
+  serialNumber              String
+  qrTokenHash               String         @unique @db.Text
+  qrTokenLast4              String
+  status                    AuthItemStatus @default(ASSIGNED_TO_INVENTORY)
+  claimStatus               ClaimStatus    @default(NOT_CLAIMED)
+  riskState                 RiskState      @default(CLEAR)
+  shopifyOrderId            BigInt?
+  shopifyLineItemId         BigInt?
+  shopifyFulfillmentId      BigInt?
+  activatedAt               DateTime?
+  claimedAt                 DateTime?
+  transferredAt             DateTime?
+  lostAt                    DateTime?
+  stolenAt                  DateTime?
+  revokedAt                 DateTime?
+  lockedAt                  DateTime?
+  lastScanAt                DateTime?
+  claimSecondFactorEnabled  Boolean        @default(true)
+  metadata                  Json
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
+
+  scans                     Scan[]
+  claims                    Claim[]
+  transfers                 Transfer[]
+  riskFlags                 RiskFlag[]
+
+  @@unique([shopId, authId])
+  @@unique([shopId, serialNumber])
+  @@index([shopId, status])
+  @@index([shopId, claimStatus])
+  @@index([shopId, ownerCustomerId])
+  @@index([shopId, productId])
+  @@index([shopifyOrderId])
+  @@map("auth_items")
+}
+
+model Scan {
+  id              String       @id @default(uuid()) @db.Uuid
+  shopId          String       @db.Uuid
+  authItemId      String       @db.Uuid
+  authItem        AuthItem     @relation(fields: [authItemId], references: [id], onDelete: Cascade)
+  shop            Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  verifyResult    VerifyResult
+  source          ScanSource   @default(PUBLIC)
+  ipAddress       String?
+  countryCode     String?
+  deviceType      String?
+  userAgent       String?
+  isSuspicious    Boolean      @default(false)
+  suspiciousReason String?
+  tokenLast4      String?
+  metadata        Json
+  scannedAt       DateTime     @default(now())
+
+  riskFlags       RiskFlag[]
+
+  @@index([shopId, authItemId, scannedAt])
+  @@index([shopId, verifyResult])
+  @@map("scans")
+}
+
+model Claim {
+  id                         String       @id @default(uuid()) @db.Uuid
+  shopId                     String       @db.Uuid
+  authItemId                 String       @db.Uuid
+  customerId                 String       @db.Uuid
+  shop                       Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  authItem                   AuthItem     @relation(fields: [authItemId], references: [id], onDelete: Cascade)
+  customer                   Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  status                     ClaimStatus  @default(PENDING)
+  method                     ClaimMethod  @default(QR_PLUS_CODE)
+  claimSecondFactorHash      String?      @db.Text
+  claimSecondFactorLast4     String?
+  claimSecondFactorExpiresAt DateTime?
+  verificationPayload        Json
+  requestedAt                DateTime     @default(now())
+  verifiedAt                 DateTime?
+  completedAt                DateTime?
+  rejectedAt                 DateTime?
+  rejectReason               String?
+  riskState                  RiskState    @default(CLEAR)
+
+  riskFlags                  RiskFlag[]
+
+  @@index([shopId, authItemId])
+  @@index([shopId, customerId])
+  @@index([shopId, status])
+  @@map("claims")
+}
+
+model Transfer {
+  id                String         @id @default(uuid()) @db.Uuid
+  shopId            String         @db.Uuid
+  authItemId        String         @db.Uuid
+  fromCustomerId    String         @db.Uuid
+  toCustomerId      String?        @db.Uuid
+  shop              Shop           @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  authItem          AuthItem       @relation(fields: [authItemId], references: [id], onDelete: Cascade)
+  fromCustomer      Customer       @relation("TransferFromCustomer", fields: [fromCustomerId], references: [id], onDelete: Restrict)
+  toCustomer        Customer?      @relation("TransferToCustomer", fields: [toCustomerId], references: [id], onDelete: SetNull)
+  transferCodeHash  String         @unique @db.Text
+  transferCodeLast4 String
+  status            TransferStatus @default(PENDING)
+  expiresAt         DateTime
+  acceptedAt        DateTime?
+  completedAt       DateTime?
+  cancelledAt       DateTime?
+  metadata          Json
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  riskFlags         RiskFlag[]
+
+  @@index([shopId, authItemId])
+  @@index([shopId, status])
+  @@index([shopId, fromCustomerId])
+  @@map("transfers")
+}
+
+model RiskFlag {
+  id              String      @id @default(uuid()) @db.Uuid
+  shopId          String      @db.Uuid
+  authItemId      String?     @db.Uuid
+  scanId          String?     @db.Uuid
+  claimId         String?     @db.Uuid
+  transferId      String?     @db.Uuid
+  shop            Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  authItem        AuthItem?   @relation(fields: [authItemId], references: [id], onDelete: SetNull)
+  scan            Scan?       @relation(fields: [scanId], references: [id], onDelete: SetNull)
+  claim           Claim?      @relation(fields: [claimId], references: [id], onDelete: SetNull)
+  transfer        Transfer?   @relation(fields: [transferId], references: [id], onDelete: SetNull)
+  severity        RiskSeverity @default(MEDIUM)
+  code            String
+  reason          String
+  state           RiskState    @default(WATCH)
+  metadata        Json
+  acknowledgedAt  DateTime?
+  resolvedAt      DateTime?
+  createdAt       DateTime     @default(now())
+
+  @@index([shopId, state])
+  @@index([shopId, authItemId])
+  @@index([code])
+  @@map("risk_flags")
+}
+
+model WebhookEvent {
+  id                 String              @id @default(uuid()) @db.Uuid
+  shopId             String              @db.Uuid
+  shop               Shop                @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  topic              String
+  webhookId          String              @unique
+  deliveryState      WebhookDeliveryState @default(RECEIVED)
+  payload            Json
+  headers            Json
+  attempts           Int                 @default(0)
+  processedAt        DateTime?
+  lastError          String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([shopId, topic])
+  @@index([shopId, deliveryState])
+  @@map("webhook_events")
+}
+
+model AuditLog {
+  id           String         @id @default(uuid()) @db.Uuid
+  shopId       String         @db.Uuid
+  shop         Shop           @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  actorType    AuditActorType
+  actorId      String?
+  action       String
+  entityType   String
+  entityId     String?
+  payload      Json
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime       @default(now())
+
+  @@index([shopId, entityType, entityId])
+  @@index([shopId, action])
+  @@index([shopId, createdAt])
+  @@map("audit_logs")
+}
+
+enum AuthItemStatus {
+  CREATED
+  ASSIGNED_TO_INVENTORY
+  RESERVED
+  SOLD
+  CLAIM_PENDING
+  CLAIMED
+  TRANSFER_PENDING
+  TRANSFERRED
+  FLAGGED
+  LOST
+  STOLEN
+  REFUNDED
+  VOID
+}
+
+enum ClaimStatus {
+  NOT_CLAIMED
+  PENDING
+  SECOND_FACTOR_REQUIRED
+  VERIFIED
+  APPROVED
+  REJECTED
+  COMPLETED
+  EXPIRED
+  CANCELLED
+  LOCKED
+}
+
+enum RiskState {
+  CLEAR
+  WATCH
+  REVIEW
+  LOCKED
+  HARD_LOCK
+}
+
+enum TransferStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  EXPIRED
+  CANCELLED
+  REJECTED
+}
+
+enum VerifyResult {
+  AUTHENTICATED
+  ALREADY_REGISTERED
+  REGISTERED_TO_CURRENT_USER
+  OWNERSHIP_MISMATCH
+  CLAIM_AVAILABLE
+  FLAGGED_FOR_REVIEW
+  INVALID_TOKEN
+  EXPIRED_TRANSFER
+  LOCKED
+}
+
+enum ClaimMethod {
+  QR_ONLY
+  QR_PLUS_CODE
+  ORDER_SYNC
+  MANUAL_OVERRIDE
+}
+
+enum RiskSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ScanSource {
+  PUBLIC
+  CUSTOMER
+  ADMIN
+  WEBHOOK
+}
+
+enum WebhookDeliveryState {
+  RECEIVED
+  PROCESSING
+  PROCESSED
+  FAILED
+  IGNORED
+  RETRYING
+}
+
+enum AuditActorType {
+  SYSTEM
+  MERCHANT
+  CUSTOMER
+  SHOPIFY
+  WEBHOOK
+  API
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "meezy-archive-registry",
+  "main": "worker/index.ts",
+  "build": {
+    "command": "npm run build"
+  },
+  "assets": {
+    "directory": "build/client"
+  },
+  "compatibility_date": "2026-05-03",
+  "compatibility_flags": [
+    "nodejs_compat",
+    "nodejs_compat_populate_process_env"
+  ],
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "NODE_ENV": "production"
+  }
+}
