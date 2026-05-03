@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "meezy-archive-registry",
+  "name": "auth-check",
   "main": "worker/index.ts",
   "build": {
     "command": "npm run build"
